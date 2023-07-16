@@ -8,6 +8,8 @@ Write-Host ""
 
 $ErrorActionPreference = "SilentlyContinue"
 
+Write-Host " Checking Hosts..." -ForegroundColor Yellow
+
 # Get a list of all the computers in the domain
 $objSearcher = New-Object System.DirectoryServices.DirectorySearcher
 $objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
@@ -51,9 +53,9 @@ else{
 $WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
 
 Write-Host ""
-Write-Host "WebClient Service is active on:" -ForegroundColor Yellow
+Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
 Write-Host ""
 $WebDAVStatusEnabled
 Write-Host ""
-Write-Host "Output saved to: $pwd\WebDAVStatusEnabled.txt"
+Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"
 Write-Host ""
