@@ -46,7 +46,7 @@ function CheckWebDAVStatus
 		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
+		#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 	}
 	
@@ -58,7 +58,7 @@ function CheckWebDAVStatus
 		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
+		#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
 		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 	}
 	
@@ -66,8 +66,8 @@ function CheckWebDAVStatus
 	
 		$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
 		
-		Write-Host ""
-		Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
+		#Write-Host ""
+		#Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
 		Write-Host ""
 		$WebDAVStatusEnabled
 		Write-Host ""
