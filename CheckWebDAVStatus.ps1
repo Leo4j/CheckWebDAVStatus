@@ -32,7 +32,7 @@ if($Computers.Count -eq 1) {
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient Service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 }
 
@@ -44,7 +44,7 @@ else{
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient Service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 }
 
