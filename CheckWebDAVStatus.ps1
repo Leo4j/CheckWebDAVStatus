@@ -1,4 +1,4 @@
-function Invoke-ADEnum
+function CheckWebDAVStatus
 {
 	
     [CmdletBinding()] Param(
