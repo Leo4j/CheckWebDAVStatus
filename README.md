@@ -1,6 +1,6 @@
 # CheckWebDAVStatus
 
-Checks for WebDAV Service on all hosts in the network
+Checks for WebDAV Service Status Enabled on all hosts in the network
 
 Run as follows:
 
