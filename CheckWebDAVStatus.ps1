@@ -5,7 +5,7 @@ function CheckWebDAVStatus
 
         [Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
         [int]
-        $threads,
+        $Threads,
 
  	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
         [String]
@@ -13,8 +13,8 @@ function CheckWebDAVStatus
 
  	)
 
-  	if($threads){}
-   	else{$threads = "20"}
+  	if($Threads){}
+   	else{$Threads = "20"}
 
 	Write-Host "   ____ _               _   __        __   _     ____    ___     ______  _        _             "
 	Write-Host "  / ___| |__   ___  ___| | _\ \      / /__| |__ |  _ \  / \ \   / / ___|| |_ __ _| |_ _   _ ___ "
@@ -49,7 +49,7 @@ function CheckWebDAVStatus
 	
 	iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/Invoke-GetWebDAVStatus.ps1')
 
-	$WebDAVStatusEnabled = Invoke-Expression "Invoke-GetWebDAVStatus -Command `"$Computers --tc $threads`""
+	$WebDAVStatusEnabled = Invoke-Expression "Invoke-GetWebDAVStatus -Command `"$Computers --tc $Threads`""
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Select-String "[+]"
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
