@@ -11,7 +11,10 @@ iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/
 CheckWebDAVStatus
 ```
 ```
-CheckWebDAVStatus -threads 100
+CheckWebDAVStatus -Targets "Host1,Host2"
+```
+```
+CheckWebDAVStatus -Threads 100
 ```
 
 Powershell implementation of `GetWebDAVStatus`: https://github.com/g0ldengunsec/getwebdavstatus
