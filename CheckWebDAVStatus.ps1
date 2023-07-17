@@ -5,7 +5,11 @@ function CheckWebDAVStatus
 
         [Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
         [int]
-        $threads
+        $threads,
+
+ 	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
+        [String]
+        $Targets
 
  	)
 
@@ -23,51 +27,41 @@ function CheckWebDAVStatus
 	$ErrorActionPreference = "SilentlyContinue"
 	
 	Write-Host " Checking Hosts..." -ForegroundColor Yellow
-	
-	# Get a list of all the computers in the domain
-	$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
-	$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
-	$objSearcher.Filter = "(&(sAMAccountType=805306369))"
-	$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
-	
-	$jcurrentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }
-	$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
-	$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
-	$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
-	$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$jcurrentdomain"}
-	$Computers = $Computers | ForEach-Object { $_.Replace(".$($jcurrentdomain)", "") }
+
+ 	if($Targets){
+  		$Computers = $Targets
+	}
+  	else{
+		# Get a list of all the computers in the domain
+		$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
+		$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
+		$objSearcher.Filter = "(&(sAMAccountType=805306369))"
+		$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
+		
+		$jcurrentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }
+		$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
+		$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
+		$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
+		$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$jcurrentdomain"}
+		$Computers = $Computers | ForEach-Object { $_.Replace(".$($jcurrentdomain)", "") }
+  		$Computers = ($Computers -join ',')
+  	}
 	
 	iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/Invoke-GetWebDAVStatus.ps1')
-	
-	if($Computers.Count -eq 1) {
-		$WebDAVStatusEnabled = Invoke-GetWebDAVStatus -Command "$Computers"
-		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Select-String "[+]"
-		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-		#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
-	}
-	
-	else{
-		$formatted_hosts = ($Computers -join ',')
-		$WebDAVStatusEnabled = Invoke-Expression "Invoke-GetWebDAVStatus -Command `"$formatted_hosts --tc $threads`""
-		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Select-String "[+]"
-		$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-		#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
-		$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
-	}
+
+	$WebDAVStatusEnabled = Invoke-Expression "Invoke-GetWebDAVStatus -Command `"$Computers --tc $threads`""
+	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Select-String "[+]"
+	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
+	#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
+
 	
 	if($WebDAVStatusEnabled){
 	
 		$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
-		
-		#Write-Host ""
-		#Write-Host " WebClient Service is active on:" -ForegroundColor Yellow
 		Write-Host ""
 		$WebDAVStatusEnabled
 		Write-Host ""
