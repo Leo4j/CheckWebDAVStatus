@@ -15,13 +15,7 @@ function CheckWebDAVStatus
 
   	if($Threads){}
    	else{$Threads = "20"}
-
-	Write-Host "   ____ _               _   __        __   _     ____    ___     ______  _        _             "
-	Write-Host "  / ___| |__   ___  ___| | _\ \      / /__| |__ |  _ \  / \ \   / / ___|| |_ __ _| |_ _   _ ___ "
-	Write-Host " | |   | '_ \ / _ \/ __| |/ /\ \ /\ / / _ \ '_ \| | | |/ _ \ \ / /\___ \| __/ _`  | __| | | / __|"
-	Write-Host " | |___| | | |  __/ (__|   <  \ V  V /  __/ |_) | |_| / ___ \ V /  ___) | || (_| | |_| |_| \__ \"
-	Write-Host "  \____|_| |_|\___|\___|_|\_\  \_/\_/ \___|_.__/|____/_/   \_\_/  |____/ \__\__,_|\__|\__,_|___/"
-	Write-Host "                                                                                                "
+                                                                                               "
 	Write-Host ""
 	
 	$ErrorActionPreference = "SilentlyContinue"
