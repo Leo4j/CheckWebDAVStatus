@@ -38,4 +38,9 @@ Bump up Threads (default: 20)
 CheckWebDAVStatus -Threads 100
 ```
 
+Set a custom Output path
+```
+CheckWebDAVStatus -OutputPath c:\Users\Public\Documents\SMBSigningNotRequired.txt
+```
+
 Powershell implementation of `GetWebDAVStatus`: https://github.com/g0ldengunsec/getwebdavstatus
