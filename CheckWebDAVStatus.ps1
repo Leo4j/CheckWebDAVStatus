@@ -13,7 +13,11 @@ function CheckWebDAVStatus
 
  	[Parameter (Mandatory=$False, Position = 2, ValueFromPipeline=$true)]
         [String]
-        $Targets
+        $Targets,
+
+ 	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
+        [String]
+        $OutputFile
 
  	)
 
@@ -72,11 +76,13 @@ function CheckWebDAVStatus
 	
 	if($WebDAVStatusEnabled){
 	
-		$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt
+		if($OutputFile){$WebDAVStatusEnabled | Out-File $OutputFile}
+  		else{$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt}
 		Write-Host ""
 		$WebDAVStatusEnabled
 		Write-Host ""
-		Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"
+  		if($OutputFile){Write-Host " Output saved to: $OutputFile"}
+		else{Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"}
 		Write-Host ""
 	 }
 	
