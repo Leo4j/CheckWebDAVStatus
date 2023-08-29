@@ -24,11 +24,11 @@ function CheckWebDAVStatus
   	if($Threads){}
    	else{$Threads = "20"}
 
-	Write-Host ""
+	Write-Output ""
 	
 	$ErrorActionPreference = "SilentlyContinue"
 	
-	Write-Host " Checking Hosts..." -ForegroundColor Yellow
+	Write-Output " Checking Hosts..."
 
  	if($Targets){
   		$Computers = $Targets
@@ -78,16 +78,16 @@ function CheckWebDAVStatus
 	
 		if($OutputFile){$WebDAVStatusEnabled | Out-File $OutputFile}
   		else{$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt}
-		Write-Host ""
+		Write-Output ""
 		$WebDAVStatusEnabled
-		Write-Host ""
-  		if($OutputFile){Write-Host " Output saved to: $OutputFile"}
-		else{Write-Host " Output saved to: $pwd\WebDAVStatusEnabled.txt"}
-		Write-Host ""
+		Write-Output ""
+  		if($OutputFile){Write-Output " Output saved to: $OutputFile"}
+		else{Write-Output " Output saved to: $pwd\WebDAVStatusEnabled.txt"}
+		Write-Output ""
 	 }
 	
 	 else{
-	 	Write-Host " No hosts found where the WebClient Service is active."
-	  	Write-Host ""
+	 	Write-Output " No hosts found where the WebClient Service is active."
+	  	Write-Output ""
 	  }
 }
