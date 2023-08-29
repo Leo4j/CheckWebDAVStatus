@@ -9,6 +9,10 @@ function CheckWebDAVStatus
 
  	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
         [String]
+        $Domain,
+
+ 	[Parameter (Mandatory=$False, Position = 2, ValueFromPipeline=$true)]
+        [String]
         $Targets
 
  	)
@@ -25,20 +29,37 @@ function CheckWebDAVStatus
  	if($Targets){
   		$Computers = $Targets
 	}
-  	else{
-		# Get a list of all the computers in the domain
-		$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
-		$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
-		$objSearcher.Filter = "(&(sAMAccountType=805306369))"
-		$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
-		
-		$jcurrentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }
-		$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
-		$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
-		$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
-		$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$jcurrentdomain"}
-		$Computers = $Computers | ForEach-Object { $_.Replace(".$($jcurrentdomain)", "") }
-  		$Computers = ($Computers -join ',')
+  	else{	
+   		if($Domain){
+     			# Get a list of all the computers in the domain
+			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
+			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$Domain")
+			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
+			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
+			
+			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
+			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$Domain"}
+			$Computers = $Computers | ForEach-Object { $_.Replace(".$($Domain)", "") }
+			$Computers = ($Computers -join ',')
+		}
+
+       		else{
+			# Get a list of all the computers in the domain
+			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
+			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
+			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
+			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
+			
+			$currentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }
+			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
+			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
+			$Computers = $Computers | ForEach-Object { $_.Replace(".$($currentdomain)", "") }
+	  		$Computers = ($Computers -join ',')
+     		}
   	}
 	
 	iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/Invoke-GetWebDAVStatus.ps1')
