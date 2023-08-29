@@ -36,12 +36,6 @@ function CheckWebDAVStatus
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$Domain")
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
-			
-			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
-			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
-			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
-			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$Domain"}
-			$Computers = $Computers | ForEach-Object { $_.Replace(".$($Domain)", "") }
 			$Computers = ($Computers -join ',')
 		}
 
@@ -51,13 +45,6 @@ function CheckWebDAVStatus
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
-			
-			$currentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }
-			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
-			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
-			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
-			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
-			$Computers = $Computers | ForEach-Object { $_.Replace(".$($currentdomain)", "") }
 	  		$Computers = ($Computers -join ',')
      		}
   	}
