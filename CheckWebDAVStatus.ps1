@@ -45,6 +45,15 @@ function CheckWebDAVStatus
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
+   			try{
+	  			$currentDomain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
+				$currentDomain = $currentDomain.Name
+	  		}
+	    		catch{$currentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }}
+			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
+			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
+			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
 	  		$Computers = ($Computers -join ',')
      		}
   	}
