@@ -38,6 +38,7 @@ function CheckWebDAVStatus
      			# Get a list of all the computers in the domain
 			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$Domain")
+   			$objSearcher.PageSize = 1000
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
 			$Computers = ($Computers -join ',')
@@ -47,6 +48,7 @@ function CheckWebDAVStatus
 			# Get a list of all the computers in the domain
 			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
+   			$objSearcher.PageSize = 1000
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
    			try{
