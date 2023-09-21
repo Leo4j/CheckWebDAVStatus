@@ -1,19 +1,47 @@
+$source = @"
+using System;
+using System.Runtime.InteropServices;
+
+namespace DynamicTypes {
+    public class PipeChecker {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool WaitNamedPipeA(string lpNamedPipeName, uint nTimeOut);
+    }
+}
+"@
+
+Add-Type -TypeDefinition $source -Language CSharp
+
+function CheckDAVPipe {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$TargetHost
+    )
+
+    $pipename = "\\$TargetHost\pipe\DAV RPC SERVICE"
+    $davActive = [DynamicTypes.PipeChecker]::WaitNamedPipeA($pipename, 3000)
+
+    if ($davActive) {
+        Write-Output "$TargetHost"
+    }
+}
+
 function CheckWebDAVStatus
 {
 	
     [CmdletBinding()] Param(
 
-        [Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
-        [int]
-        $Threads,
-
- 	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
+ 	[Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
         [String]
         $Domain,
 
- 	[Parameter (Mandatory=$False, Position = 2, ValueFromPipeline=$true)]
+ 	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
         [String]
         $Targets,
+		
+	[Parameter (Mandatory=$False, Position = 2, ValueFromPipeline=$true)]
+        [String]
+        $TargetsFile,
 
  	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
         [String]
@@ -21,12 +49,13 @@ function CheckWebDAVStatus
 
  	[Parameter (Mandatory=$False, Position = 4, ValueFromPipeline=$true)]
         [switch]
-        $Sessions
+        $Sessions,
+		
+	[Parameter (Mandatory=$False, Position = 5, ValueFromPipeline=$true)]
+        [switch]
+        $NoPortScan
 
  	)
-
-  	if($Threads){}
-   	else{$Threads = "20"}
 
 	Write-Output ""
 	
@@ -36,7 +65,14 @@ function CheckWebDAVStatus
 
  	if($Targets){
   		$Computers = $Targets
+		$Computers = $Computers -split ","
 	}
+	
+	elseif($TargetsFile){
+		$Computers = @()
+		$Computers = Get-Content -Path $TargetsFile
+	}
+	
   	else{	
    		if($Domain){
      			# Get a list of all the computers in the domain
@@ -45,7 +81,6 @@ function CheckWebDAVStatus
    			$objSearcher.PageSize = 1000
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
-			$Computers = ($Computers -join ',')
 		}
 
        		else{
@@ -64,21 +99,45 @@ function CheckWebDAVStatus
 			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
 			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
 			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
-	  		$Computers = ($Computers -join ',')
      		}
   	}
 	
-	iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Tools/main/Invoke-GetWebDAVStatus.ps1')
+	if(!$NoPortScan){
+	
+		$reachable_hosts = $null
+		$Tasks = $null
+		$total = $Computers.Count
+		$count = 0
+		
+		if(!$Timeout){$Timeout = "50"}
+		
+		$reachable_hosts = @()
+		
+		$Tasks = $Computers | % {
+			Write-Progress -Activity "Scanning Ports" -Status "$count out of $total hosts scanned" -PercentComplete ($count / $total * 100)
+			$tcpClient = New-Object System.Net.Sockets.TcpClient
+			$asyncResult = $tcpClient.BeginConnect($_, 445, $null, $null)
+			$wait = $asyncResult.AsyncWaitHandle.WaitOne($Timeout)
+			if($wait) {
+				$tcpClient.EndConnect($asyncResult)
+				$tcpClient.Close()
+				$reachable_hosts += $_
+			} else {}
+			$count++
+		}
+		
+		Write-Progress -Activity "Scanning Ports" -Completed
+		
+		$Computers = $reachable_hosts
 
-	$WebDAVStatusEnabled = Invoke-Expression "Invoke-GetWebDAVStatus -Command `"$Computers --tc $Threads`""
-	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Select-String "[+]"
-	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient service is active on ", "") }
-	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
-
+ 	}
+	
+	$WebDAVStatusEnabled = $null
+	$WebDAVStatusEnabled = @()
+	
+	$WebDAVStatusEnabled += foreach($Computer in $Computers){
+		CheckDAVPipe -TargetHost $Computer
+	}
 	
 	if($WebDAVStatusEnabled){
 	
@@ -102,6 +161,7 @@ function CheckWebDAVStatus
 	 }
 	
 	 else{
+		Write-Output ""
 	 	Write-Output " No hosts found where the WebClient Service is active."
 	  	Write-Output ""
 	  }
