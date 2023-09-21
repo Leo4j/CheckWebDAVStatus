@@ -17,7 +17,11 @@ function CheckWebDAVStatus
 
  	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
         [String]
-        $OutputFile
+        $OutputFile,
+
+ 	[Parameter (Mandatory=$False, Position = 4, ValueFromPipeline=$true)]
+        [switch]
+        $Sessions
 
  	)
 
@@ -72,7 +76,7 @@ function CheckWebDAVStatus
 	$WebDAVStatusEnabled = ($WebDAVStatusEnabled | Out-String) -split "`n"
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled.Trim()
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Where-Object { $_ -ne "" }
-	#$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient Service is active on ", "") }
+	$WebDAVStatusEnabled = $WebDAVStatusEnabled | ForEach-Object { $_.Replace("[+] WebClient service is active on ", "") }
 	$WebDAVStatusEnabled = $WebDAVStatusEnabled | Sort-Object -Unique
 
 	
@@ -81,11 +85,20 @@ function CheckWebDAVStatus
 		if($OutputFile){$WebDAVStatusEnabled | Out-File $OutputFile}
   		else{$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt}
 		Write-Output ""
+		Write-Output " WebClient service is active on:"
+		Write-Output ""
 		$WebDAVStatusEnabled
 		Write-Output ""
   		if($OutputFile){Write-Output " Output saved to: $OutputFile"}
 		else{Write-Output " Output saved to: $pwd\WebDAVStatusEnabled.txt"}
 		Write-Output ""
+		
+		if($Sessions){
+			Write-Output " Checking for Sessions..."
+			iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Invoke-SessionHunter/main/Invoke-SessionHunter.ps1')
+			$WebDAVStatusEnabled = ($WebDAVStatusEnabled -join ',')
+			Invoke-SessionHunter -Targets $WebDAVStatusEnabled
+		}
 	 }
 	
 	 else{
