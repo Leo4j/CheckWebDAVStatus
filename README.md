@@ -48,5 +48,3 @@ Set a custom Output path
 ```
 CheckWebDAVStatus -OutputPath c:\Users\Public\Documents\WebDAVStatusEnabled.txt
 ```
-
-Powershell implementation of `GetWebDAVStatus`: https://github.com/g0ldengunsec/getwebdavstatus
