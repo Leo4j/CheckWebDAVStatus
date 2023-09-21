@@ -26,22 +26,19 @@ Check all hosts in the target domain for WebDAV Service Status Enabled
 CheckWebDAVStatus -Domain domain.local
 ```
 
-Check for WebDAV Service Status Enabled on specified targets (current domain)
+Check for WebDAV Service Status Enabled on specified targets (specify the domain name to target a different domain)
 
 ```
 CheckWebDAVStatus -Targets "Host1,Host2"
 ```
-
-Check for WebDAV Service Status Enabled on specified targets
-
 ```
 CheckWebDAVStatus -Targets "Host1.domain.local,Host2.contoso.local"
 ```
 
-Bump up Threads (default: 20)
+Check for WebDAV Service Status Enabled on a list of targets (one per line)
 
 ```
-CheckWebDAVStatus -Threads 100
+CheckWebDAVStatus -TargetsFile c:\Users\Public\Documents\target_hosts.txt
 ```
 
 Set a custom Output path
