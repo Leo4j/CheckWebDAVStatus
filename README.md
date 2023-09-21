@@ -14,6 +14,12 @@ Check all hosts in the current domain for WebDAV Service Status Enabled
 CheckWebDAVStatus
 ```
 
+Check for active Sessions on all hosts having WebDAV Service Status Enabled - uses [Invoke-SessionHunter](https://github.com/Leo4j/Invoke-SessionHunter)
+
+```
+CheckWebDAVStatus -Sessions
+```
+
 Check all hosts in the target domain for WebDAV Service Status Enabled
 
 ```
