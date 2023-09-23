@@ -159,7 +159,7 @@ function CheckWebDAVStatus
 			Write-Output " Checking for Sessions..."
 			iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Invoke-SessionHunter/main/Invoke-SessionHunter.ps1')
 			$WebDAVStatusEnabled = ($WebDAVStatusEnabled -join ',')
-			Invoke-SessionHunter -Targets $WebDAVStatusEnabled
+			Invoke-SessionHunter -Targets $WebDAVStatusEnabled -NoPortScan
 		}
 	 }
 	
