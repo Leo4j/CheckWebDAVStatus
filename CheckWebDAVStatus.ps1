@@ -119,10 +119,13 @@ function CheckWebDAVStatus
 			$asyncResult = $tcpClient.BeginConnect($_, 445, $null, $null)
 			$wait = $asyncResult.AsyncWaitHandle.WaitOne($Timeout)
 			if($wait) {
-				$tcpClient.EndConnect($asyncResult)
-				$tcpClient.Close()
-				$reachable_hosts += $_
-			} else {}
+   				try{
+					$tcpClient.EndConnect($asyncResult)
+					$connected = $true
+					$reachable_hosts += $_
+     				} catch{$connected = $false}
+			} else {$connected = $false}
+   			$tcpClient.Close()
 			$count++
 		}
 		
