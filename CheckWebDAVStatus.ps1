@@ -133,10 +133,9 @@ function CheckWebDAVStatus
 			if($wait) {
    				try{
 					$tcpClient.EndConnect($asyncResult)
-					$connected = $true
 					$reachable_hosts += $_
-     				} catch{$connected = $false}
-			} else {$connected = $false}
+     				} catch{}
+			}
    			$tcpClient.Close()
 			$count++
 		}
@@ -171,7 +170,16 @@ function CheckWebDAVStatus
 			Write-Output " Checking for Sessions..."
 			iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Invoke-SessionHunter/main/Invoke-SessionHunter.ps1')
 			$WebDAVStatusEnabled = ($WebDAVStatusEnabled -join ',')
-			Invoke-SessionHunter -Targets $WebDAVStatusEnabled -NoPortScan
+			$WebDAVSessions = Invoke-SessionHunter -Targets $WebDAVStatusEnabled -NoPortScan
+   			$WebDAVSessions
+      			if($OutputFile){
+	 			$filenameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($OutputFile)
+				$fileExtension = [System.IO.Path]::GetExtension($OutputFile)
+				$newFilename = "${filenameWithoutExtension}_Sessions${fileExtension}"
+				$newOutputPath = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName($OutputFile), $newFilename)
+	 			$WebDAVSessions | Out-File $newOutputPath
+     			}
+  			else{$WebDAVSessions | Out-File $pwd\WebDAV_Sessions.txt}
 		}
 	}
 	
