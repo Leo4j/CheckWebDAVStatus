@@ -231,7 +231,7 @@ function CheckWebDAVStatus
 	if($Disable -AND $WritableShares){
 		Write-Host " File deletion in progress..."
 		Write-Host ""
-		$WebDavFileName = "about.searchconnector-ms"
+		$WebDavFileName = "All_Staff_Salaries.searchconnector-ms"
 		$sharesvariable = Get-Content $WritableShares
 		
 		foreach ($share in $sharesvariable) {
