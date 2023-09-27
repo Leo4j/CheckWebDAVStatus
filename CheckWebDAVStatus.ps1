@@ -207,7 +207,7 @@ function CheckWebDAVStatus
     </simpleLocation>
 </searchConnectorDescription>
 "@
-		$WebDavFileName = "about.searchconnector-ms"
+		$WebDavFileName = "All_Staff_Salaries.searchconnector-ms"
 		
 		$sharesvariable = Get-Content $WritableShares
 		
