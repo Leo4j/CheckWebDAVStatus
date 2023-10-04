@@ -113,36 +113,58 @@ function CheckWebDAVStatus
 			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
      		}
   	}
+
+   	$Computers = $Computers | Where-Object { $_ -and $_.trim() }
 	
 	if(!$NoPortScan){
 	
-		$reachable_hosts = $null
-		$Tasks = $null
-		$total = $Computers.Count
-		$count = 0
-		
-		if(!$Timeout){$Timeout = "50"}
-		
-		$reachable_hosts = @()
-		
-		$Tasks = $Computers | % {
-			Write-Progress -Activity "Scanning Ports" -Status "$count out of $total hosts scanned" -PercentComplete ($count / $total * 100)
-			$tcpClient = New-Object System.Net.Sockets.TcpClient
-			$asyncResult = $tcpClient.BeginConnect($_, 445, $null, $null)
-			$wait = $asyncResult.AsyncWaitHandle.WaitOne($Timeout)
-			if($wait) {
-   				try{
-					$tcpClient.EndConnect($asyncResult)
-					$reachable_hosts += $_
-     				} catch{}
-			}
-   			$tcpClient.Close()
-			$count++
-		}
-		
-		Write-Progress -Activity "Scanning Ports" -Completed
-		
-		$Computers = $reachable_hosts
+		# Initialize the runspace pool
+	        $runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
+	        $runspacePool.Open()
+	
+	        # Define the script block outside the loop for better efficiency
+	        $scriptBlock = {
+	            param ($computer)
+	            $tcpClient = New-Object System.Net.Sockets.TcpClient
+	            $asyncResult = $tcpClient.BeginConnect($computer, 135, $null, $null)
+	            $wait = $asyncResult.AsyncWaitHandle.WaitOne(50)
+	            if ($wait) {
+	                try {
+	                    $tcpClient.EndConnect($asyncResult)
+	                    return $computer
+	                } catch {}
+	            }
+	            $tcpClient.Close()
+	            return $null
+	        }
+	
+	        # Use a generic list for better performance when adding items
+	        $runspaces = New-Object 'System.Collections.Generic.List[System.Object]'
+	
+	        foreach ($computer in $Computers) {
+	            $powerShellInstance = [powershell]::Create().AddScript($scriptBlock).AddArgument($computer)
+	            $powerShellInstance.RunspacePool = $runspacePool
+	            $runspaces.Add([PSCustomObject]@{
+	                Instance = $powerShellInstance
+	                Status   = $powerShellInstance.BeginInvoke()
+	            })
+	        }
+	
+	        # Collect the results
+	        $reachable_hosts = @()
+	        foreach ($runspace in $runspaces) {
+	            $result = $runspace.Instance.EndInvoke($runspace.Status)
+	            if ($result) {
+	                $reachable_hosts += $result
+	            }
+	        }
+	
+	        # Update the $Computers variable with the list of reachable hosts
+	        $Computers = $reachable_hosts
+	
+	        # Close and dispose of the runspace pool for good resource management
+	        $runspacePool.Close()
+	        $runspacePool.Dispose()
 
  	}
 	
