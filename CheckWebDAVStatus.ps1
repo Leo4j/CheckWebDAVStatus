@@ -126,7 +126,7 @@ function CheckWebDAVStatus
 	        $scriptBlock = {
 	            param ($computer)
 	            $tcpClient = New-Object System.Net.Sockets.TcpClient
-	            $asyncResult = $tcpClient.BeginConnect($computer, 135, $null, $null)
+	            $asyncResult = $tcpClient.BeginConnect($computer, 445, $null, $null)
 	            $wait = $asyncResult.AsyncWaitHandle.WaitOne(50)
 	            if ($wait) {
 	                try {
