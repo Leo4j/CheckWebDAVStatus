@@ -1,43 +1,53 @@
-function CheckWebDAVStatus
-{
+function CheckWebDAVStatus{
+	
+	<#
+
+	.SYNOPSIS
+	CheckWebDAVStatus Author: Rob LP (@L3o4j)
+	https://github.com/Leo4j/CheckWebDAVStatus
+	
+	.DESCRIPTION
+	Check for WebDAV Service Status, EFS status, and hunt for Sessions
+
+	#>
 	
     [CmdletBinding()] Param(
 
  	[Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
-        [String]
-        $Domain,
+	[String]
+	$Domain,
 
  	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
-        [String]
-        $Targets,
+	[String]
+	$Targets,
 		
 	[Parameter (Mandatory=$False, Position = 2, ValueFromPipeline=$true)]
-        [String]
-        $TargetsFile,
+	[String]
+	$TargetsFile,
 
  	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
-        [String]
-        $OutputFile,
+	[String]
+	$OutputFile,
 
  	[Parameter (Mandatory=$False, Position = 4, ValueFromPipeline=$true)]
-        [switch]
-        $Sessions,
+	[switch]
+	$Sessions,
 		
 	[Parameter (Mandatory=$False, Position = 5, ValueFromPipeline=$true)]
-        [switch]
-        $NoPortScan,
+	[switch]
+	$NoPortScan,
 		
-	[Parameter (Mandatory=$False, Position = 5, ValueFromPipeline=$true)]
-        [switch]
-        $Enable,
+	[Parameter (Mandatory=$False, Position = 6, ValueFromPipeline=$true)]
+	[switch]
+	$Enable,
 		
-	[Parameter (Mandatory=$False, Position = 5, ValueFromPipeline=$true)]
-        [switch]
-        $Disable,
+	[Parameter (Mandatory=$False, Position = 7, ValueFromPipeline=$true)]
+	[switch]
+	$Disable,
 		
-	[Parameter (Mandatory=$False, Position = 5, ValueFromPipeline=$true)]
-        [String]
-        $WritableShares
+	[Parameter (Mandatory=$False, Position = 8, ValueFromPipeline=$true)]
+	[String]
+	$WritableShares
 
  	)
 
@@ -217,27 +227,37 @@ Add-Type -TypeDefinition $source -Language CSharp
 			}
 		}
 	
-		if($OutputFile){$WebDAVStatusEnabled | Out-File $OutputFile}
-  		else{$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt}
+		
 		$FinalTable | ft -Autosize
-  		if($OutputFile){Write-Output "[*] Output saved to: $OutputFile"}
-		else{Write-Output "[*] Output saved to: $pwd\WebDAVStatusEnabled.txt"}
-		Write-Output ""
 		
 		if($Sessions){
 			Write-Output "[*] Checking for Sessions..."
-			iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Invoke-SessionHunter/main/Invoke-SessionHunter.ps1')
 			$WebDAVStatusEnabled = ($WebDAVStatusEnabled -join ',')
-			$WebDAVSessions = Invoke-SessionHunter -Targets $WebDAVStatusEnabled -NoPortScan
+			$WebDAVSessions = Invoke-SessionHunter -Targets $WebDAVStatusEnabled -Domain $Domain
    			$WebDAVSessions | ft -Autosize
-      			if($OutputFile){
-	 			$filenameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($OutputFile)
-				$fileExtension = [System.IO.Path]::GetExtension($OutputFile)
-				$newFilename = "${filenameWithoutExtension}_Sessions${fileExtension}"
-				$newOutputPath = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName($OutputFile), $newFilename)
-	 			$WebDAVSessions | Out-File $newOutputPath
-     			}
-  			else{$WebDAVSessions | Out-File $pwd\WebDAV_Sessions.txt}
+      		if($OutputFile){
+				$FinalTable | Out-File $OutputFile
+	 			Add-Content -Path $OutputFile -Value "Sessions:"
+	 			$WebDAVSessions | Out-File -FilePath $OutputFile -Append
+				Write-Output "[*] Output saved to: $OutputFile"
+     		}
+  			else{
+				$FinalTable | Out-File $pwd\WebDAVEnabled.txt
+				Add-Content -Path $pwd\WebDAVEnabled.txt -Value "Sessions:"
+				$WebDAVSessions | Out-File -FilePath $pwd\WebDAVEnabled.txt -Append
+				Write-Output "[*] Output saved to: $pwd\WebDAVEnabled.txt"
+			}
+		}
+		
+		else {
+			if($OutputFile){
+				$FinalTable | Out-File $OutputFile
+				Write-Output "[*] Output saved to: $OutputFile"
+			}
+			else{
+				$FinalTable | Out-File $pwd\WebDAVEnabled.txt
+				Write-Output "[*] Output saved to: $pwd\WebDAVEnabled.txt"
+			}
 		}
 	}
 	
@@ -348,6 +368,39 @@ function CheckEFSPipe {
     }
 }
 
+function AdminCount {
+    param (
+        [string]$UserName,
+        [string]$Domain
+    )
+
+    $ErrorActionPreference = "SilentlyContinue"
+
+    # Construct distinguished name for the domain.
+    $domainDistinguishedName = "DC=" + ($Domain -replace "\.", ",DC=")
+    $targetdomain = "LDAP://$domainDistinguishedName"
+
+    $searcher = New-Object System.DirectoryServices.DirectorySearcher
+    $searcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry $targetdomain
+    $searcher.PageSize = 1000
+    $Searcher.Filter = "(sAMAccountName=$UserName)"
+    $Searcher.PropertiesToLoad.Clear()
+    $Searcher.PropertiesToLoad.Add("adminCount") > $null
+    $result = $Searcher.FindOne()
+
+    # Check if results were returned and output the adminCount property.
+    if ($result -ne $null) {
+        $entry = $result.GetDirectoryEntry()
+        if ($entry.Properties["adminCount"].Value -ne $null) {
+            return ($entry.Properties["adminCount"].Value -eq 1)
+        } else {
+            return $false
+        }
+    } else {
+        return $false
+    }
+}
+
 function Get-OS {
     param (
         [string]$HostName,
@@ -382,4 +435,201 @@ function Get-OS {
     } else {
         return $null
     }
+}
+
+function Invoke-SessionHunter {
+	
+	<#
+
+	.SYNOPSIS
+	Invoke-SessionHunter Author: Rob LP (@L3o4j)
+	https://github.com/Leo4j/Invoke-SessionHunter
+
+	#>
+    
+	[CmdletBinding()] Param(
+		
+		[Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
+		[String]
+		$Domain,
+		
+		[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
+		[String]
+		$Targets
+	
+	)
+	
+	$ErrorActionPreference = "SilentlyContinue"
+	$WarningPreference = "SilentlyContinue"
+	Set-Variable MaximumHistoryCount 32767
+	
+	Add-Type -AssemblyName System.DirectoryServices
+	$currentDomain = $Domain
+	$Computers = $Targets
+	$Computers = $Computers -split ","
+	$Computers = $Computers | ForEach-Object { $_ -replace '\..*', '' }
+	$Computers = $Computers | Sort-Object -Unique
+	
+	$ComputersFQDN = $Computers | ForEach-Object {
+		if (-Not $_.EndsWith($Domain)) {
+			"$_.$Domain"
+		} else {
+			$_
+		}
+	}
+	$Computers = $ComputersFQDN
+	
+	# Create a runspace pool
+	$runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+	$runspacePool.Open()
+
+	# Create an array to hold the runspaces
+	$runspaces = @()
+
+	# Iterate through the computers, creating a runspace for each
+	foreach ($Computer in $Computers) {
+		# ScriptBlock that contains the processing code
+		$scriptBlock = {
+			param($Computer, $currentDomain, $ConnectionErrors, $searcher)
+
+			# Clearing variables
+			$userSIDs = $null
+			$userKeys = $null
+			$remoteRegistry = $null
+			$user = $null
+			$userTranslation = $null
+
+			$results = @()
+
+			# Gather computer information
+			$ipAddress = Resolve-DnsName $Computer | Where-Object { $_.Type -eq "A" } | Select-Object -ExpandProperty IPAddress
+
+			# Open the remote base key
+			try {
+				$remoteRegistry = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('Users', $Computer)
+			} catch {
+				if ($ConnectionErrors) {
+					Write-Host ""
+					Write-Host "Failed to connect to computer: $Computer"
+				}
+				continue
+			}
+
+			# Get the subkeys under HKEY_USERS
+			$userKeys = $remoteRegistry.GetSubKeyNames()
+
+			# Initialize an array to store the user SIDs
+			$userSIDs = @()
+
+			foreach ($key in $userKeys) {
+				# Skip common keys that are not user SIDs
+				if ($key -match '^[Ss]-\d-\d+-(\d+-){1,14}\d+$') {
+					$userSIDs += $key
+				}
+			}
+
+			# Close the remote registry key
+			$remoteRegistry.Close()
+
+			$results = @()
+
+			# Resolve the SIDs to usernames
+			foreach ($sid in $userSIDs) {
+				$user = $null
+				$userTranslation = $null
+
+				try {
+					$user = New-Object System.Security.Principal.SecurityIdentifier($sid)
+					$userTranslation = $user.Translate([System.Security.Principal.NTAccount])
+
+					$results += [PSCustomObject]@{
+						Domain           = $currentDomain
+						HostName         = $Computer.Replace(".$currentDomain", "")
+						IPAddress        = $ipAddress
+						OperatingSystem  = $null
+						Access           = $null
+						UserSession      = $userTranslation
+						AdmCount         = "NO"
+					}
+				} catch {
+					$searcher.Filter = "(objectSid=$sid)"
+					$userTranslation = $searcher.FindOne()
+					$user = $userTranslation.GetDirectoryEntry()
+					$usersam = $user.Properties["samAccountName"].Value
+					$netdomain = ([ADSI]"LDAP://$currentDomain").dc -Join " - "
+					if ($usersam -notcontains '\') {
+						$usersam = "$netdomain\" + $usersam
+					}
+
+					$results += [PSCustomObject]@{
+						Domain           = $currentDomain
+						HostName         = $Computer.Replace(".$currentDomain", "")
+						IPAddress        = $ipAddress
+						OperatingSystem  = $null
+						Access           = $null
+						UserSession      = $usersam
+						AdmCount         = "NO"
+					}
+				}
+			}
+
+			# Returning the results
+			return $results
+		}
+
+		$runspace = [powershell]::Create().AddScript($scriptBlock).AddArgument($Computer).AddArgument($currentDomain).AddArgument($ConnectionErrors).AddArgument($searcher)
+		$runspace.RunspacePool = $runspacePool
+		$runspaces += [PSCustomObject]@{ Pipe = $runspace; Status = $runspace.BeginInvoke() }
+	}
+
+	# Wait for all runspaces to complete
+	$allResults = @()
+	foreach ($runspace in $runspaces) {
+		$allResults += $runspace.Pipe.EndInvoke($runspace.Status)
+		$runspace.Pipe.Dispose()
+	}
+
+	# Define RunspacePool
+	$runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount)
+	$runspacePool.Open()
+
+	$runspaces = @()
+
+	foreach ($result in $allResults) {
+		$target = "$($result.HostName).$($result.Domain)"
+		
+		$powershell = [powershell]::Create().AddScript({
+			$Error.Clear()
+			Get-WmiObject -Class Win32_OperatingSystem -ComputerName $args > $null
+			#ls "\\$args\c$" > $null
+			return ($error[0] -eq $null)
+		}).AddArgument($target)
+
+		$powershell.RunspacePool = $runspacePool
+
+		$runspaces += [PSCustomObject]@{
+			PowerShell = $powershell
+			Status = $powershell.BeginInvoke()
+			Result = $result
+		}
+	}
+
+	# Wait and collect results
+	foreach ($runspace in $runspaces) {
+		$runspace.Result.Access = [bool]($runspace.PowerShell.EndInvoke($runspace.Status))
+		$runspace.PowerShell.Dispose()
+	}
+
+	$runspacePool.Close()
+	$runspacePool.Dispose()
+	
+	foreach ($result in $allResults) {
+		$username = ($result.UserSession -split '\\')[1]
+		$tempdomain = ($result.UserSession -split '\\')[0]
+		$TargetHost = $result.HostName
+		$result.AdmCount = AdminCount -UserName $username -Domain $Domain
+		$result.OperatingSystem = Get-OS -HostName $TargetHost -Domain $Domain
+	}
+
+	$allResults | Select-Object Domain, HostName, IPAddress, OperatingSystem, Access, UserSession, AdmCount | Format-Table -AutoSize	
 }
