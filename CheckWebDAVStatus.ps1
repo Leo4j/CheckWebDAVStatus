@@ -222,7 +222,7 @@ Add-Type -TypeDefinition $source -Language CSharp
 		$FinalTable += foreach($davresult in $WebDAVStatusEnabled){
 			[PSCustomObject]@{
 				"WebDAV Enabled" = $davresult
-				"EFS Enabled" = CheckEFSPipe -TargetHost $davresult
+				"EFS Service" = CheckEFSPipe -TargetHost $davresult
 				"Operating System" = Get-OS -HostName ($davresult -split "\.")[0] -Domain $Domain
 			}
 		}
@@ -361,10 +361,10 @@ function CheckEFSPipe {
     $efsActive = [DynamicTypes.PipeChecker]::WaitNamedPipeA($pipename, 100)
 
     if ($efsActive) {
-        return "True"
+        return "Running"
     }
 	else {
-        Return "False"
+        Return "Stopped"
     }
 }
 
