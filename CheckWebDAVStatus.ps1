@@ -1,31 +1,3 @@
-$source = @"
-using System;
-using System.Runtime.InteropServices;
-
-namespace DynamicTypes {
-    public class PipeChecker {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool WaitNamedPipeA(string lpNamedPipeName, uint nTimeOut);
-    }
-}
-"@
-
-Add-Type -TypeDefinition $source -Language CSharp
-
-function CheckDAVPipe {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$TargetHost
-    )
-
-    $pipename = "\\$TargetHost\pipe\DAV RPC SERVICE"
-    $davActive = [DynamicTypes.PipeChecker]::WaitNamedPipeA($pipename, 3000)
-
-    if ($davActive) {
-        Write-Output "$TargetHost"
-    }
-}
-
 function CheckWebDAVStatus
 {
 	
@@ -73,7 +45,7 @@ function CheckWebDAVStatus
 	
 	$ErrorActionPreference = "SilentlyContinue"
 	
-	Write-Output " Checking Hosts..."
+	Write-Output "[*] Checking Hosts..."
 
  	if($Targets){
   		$Computers = $Targets
@@ -87,7 +59,7 @@ function CheckWebDAVStatus
 	
   	else{	
    		if($Domain){
-     			# Get a list of all the computers in the domain
+     		# Get a list of all the computers in the domain
 			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$Domain")
    			$objSearcher.PageSize = 1000
@@ -95,7 +67,7 @@ function CheckWebDAVStatus
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
 		}
 
-       		else{
+       	else{
 			# Get a list of all the computers in the domain
 			$objSearcher = New-Object System.DirectoryServices.DirectorySearcher
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
@@ -106,12 +78,13 @@ function CheckWebDAVStatus
 	  			$currentDomain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
 				$currentDomain = $currentDomain.Name
 	  		}
-	    		catch{$currentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }}
+	    	catch{$currentdomain = Get-WmiObject -Namespace root\cimv2 -Class Win32_ComputerSystem | Select Domain | Format-Table -HideTableHeaders | out-string | ForEach-Object { $_.Trim() }}
+			$Domain = $currentDomain
 			$Computers = $Computers | Where-Object {-not ($_ -cmatch "$env:computername")}
 			$Computers = $Computers | Where-Object {-not ($_ -match "$env:computername")}
 			$Computers = $Computers | Where-Object {$_ -ne "$env:computername"}
 			$Computers = $Computers | Where-Object {$_ -ne "$env:computername.$currentdomain"}
-     		}
+     	}
   	}
 
    	$Computers = $Computers | Where-Object { $_ -and $_.trim() }
@@ -119,81 +92,144 @@ function CheckWebDAVStatus
 	if(!$NoPortScan){
 	
 		# Initialize the runspace pool
-	        $runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
-	        $runspacePool.Open()
-	
-	        # Define the script block outside the loop for better efficiency
-	        $scriptBlock = {
-	            param ($computer)
-	            $tcpClient = New-Object System.Net.Sockets.TcpClient
-	            $asyncResult = $tcpClient.BeginConnect($computer, 445, $null, $null)
-	            $wait = $asyncResult.AsyncWaitHandle.WaitOne(50)
-	            if ($wait) {
-	                try {
-	                    $tcpClient.EndConnect($asyncResult)
-	                    return $computer
-	                } catch {}
-	            }
-	            $tcpClient.Close()
-	            return $null
-	        }
-	
-	        # Use a generic list for better performance when adding items
-	        $runspaces = New-Object 'System.Collections.Generic.List[System.Object]'
-	
-	        foreach ($computer in $Computers) {
-	            $powerShellInstance = [powershell]::Create().AddScript($scriptBlock).AddArgument($computer)
-	            $powerShellInstance.RunspacePool = $runspacePool
-	            $runspaces.Add([PSCustomObject]@{
-	                Instance = $powerShellInstance
-	                Status   = $powerShellInstance.BeginInvoke()
-	            })
-	        }
-	
-	        # Collect the results
-	        $reachable_hosts = @()
-	        foreach ($runspace in $runspaces) {
-	            $result = $runspace.Instance.EndInvoke($runspace.Status)
-	            if ($result) {
-	                $reachable_hosts += $result
-	            }
-	        }
-	
-	        # Update the $Computers variable with the list of reachable hosts
-	        $Computers = $reachable_hosts
-	
-	        # Close and dispose of the runspace pool for good resource management
-	        $runspacePool.Close()
-	        $runspacePool.Dispose()
+		$runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
+		$runspacePool.Open()
+
+		# Define the script block outside the loop for better efficiency
+		$scriptBlock = {
+			param ($computer)
+			$tcpClient = New-Object System.Net.Sockets.TcpClient
+			$asyncResult = $tcpClient.BeginConnect($computer, 445, $null, $null)
+			$wait = $asyncResult.AsyncWaitHandle.WaitOne(50)
+			if ($wait) {
+				try {
+					$tcpClient.EndConnect($asyncResult)
+					return $computer
+				} catch {}
+			}
+			$tcpClient.Close()
+			return $null
+		}
+
+		# Use a generic list for better performance when adding items
+		$runspaces = New-Object 'System.Collections.Generic.List[System.Object]'
+
+		foreach ($computer in $Computers) {
+			$powerShellInstance = [powershell]::Create().AddScript($scriptBlock).AddArgument($computer)
+			$powerShellInstance.RunspacePool = $runspacePool
+			$runspaces.Add([PSCustomObject]@{
+				Instance = $powerShellInstance
+				Status   = $powerShellInstance.BeginInvoke()
+			})
+		}
+
+		# Collect the results
+		$reachable_hosts = @()
+		foreach ($runspace in $runspaces) {
+			$result = $runspace.Instance.EndInvoke($runspace.Status)
+			if ($result) {
+				$reachable_hosts += $result
+			}
+		}
+
+		# Update the $Computers variable with the list of reachable hosts
+		$Computers = $reachable_hosts
+
+		# Close and dispose of the runspace pool for good resource management
+		$runspacePool.Close()
+		$runspacePool.Dispose()
 
  	}
 	
-	$WebDAVStatusEnabled = $null
-	$WebDAVStatusEnabled = @()
+	# Initialize the runspace pool
+	$runspacePool = [runspacefactory]::CreateRunspacePool(1, 10)
+	$runspacePool.Open()
+
+	# Define the script block outside the loop for better efficiency
+	$scriptBlock = {
+		param ($computer)
+		
+		$source = @"
+using System;
+using System.Runtime.InteropServices;
+
+namespace DynamicTypes {
+    public class PipeChecker {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool WaitNamedPipeA(string lpNamedPipeName, uint nTimeOut);
+    }
+}
+"@
+
+Add-Type -TypeDefinition $source -Language CSharp
+
+		function CheckDAVPipe {
+			param (
+				[Parameter(Mandatory = $true)]
+				[string]$TargetHost
+			)
+
+			$pipename = "\\$TargetHost\pipe\DAV RPC SERVICE"
+			$davActive = [DynamicTypes.PipeChecker]::WaitNamedPipeA($pipename, 100)
+
+			if ($davActive) {
+				Write-Output "$TargetHost"
+			}
+		}
+		
+		$Result = CheckDAVPipe -TargetHost $computer
+		if($Result){return $computer}
+		return $null
+	}
+
+	# Use a generic list for better performance when adding items
+	$runspaces = New-Object 'System.Collections.Generic.List[System.Object]'
 	
-	$WebDAVStatusEnabled += foreach($Computer in $Computers){
-		CheckDAVPipe -TargetHost $Computer
+	foreach ($computer in $Computers) {
+		$powerShellInstance = [powershell]::Create().AddScript($scriptBlock).AddArgument($computer)
+		$powerShellInstance.RunspacePool = $runspacePool
+		$runspaces.Add([PSCustomObject]@{
+			Instance = $powerShellInstance
+			Status   = $powerShellInstance.BeginInvoke()
+		})
 	}
 	
+	# Collect the results
+	$WebDAVStatusEnabled = @()
+	foreach ($runspace in $runspaces) {
+		$result = $runspace.Instance.EndInvoke($runspace.Status)
+		if ($result) {
+			$WebDAVStatusEnabled += $result
+		}
+	}
+
+	# Close and dispose of the runspace pool for good resource management
+	$runspacePool.Close()
+	$runspacePool.Dispose()
+	
 	if($WebDAVStatusEnabled){
+		$FinalTable = @()
+		$FinalTable += foreach($davresult in $WebDAVStatusEnabled){
+			[PSCustomObject]@{
+				"WebDAV Enabled" = $davresult
+				"EFS Enabled" = CheckEFSPipe -TargetHost $davresult
+				"Operating System" = Get-OS -HostName ($davresult -split "\.")[0] -Domain $Domain
+			}
+		}
 	
 		if($OutputFile){$WebDAVStatusEnabled | Out-File $OutputFile}
   		else{$WebDAVStatusEnabled | Out-File $pwd\WebDAVStatusEnabled.txt}
-		Write-Output ""
-		Write-Output " WebClient service is active on:"
-		Write-Output ""
-		$WebDAVStatusEnabled
-		Write-Output ""
-  		if($OutputFile){Write-Output " Output saved to: $OutputFile"}
-		else{Write-Output " Output saved to: $pwd\WebDAVStatusEnabled.txt"}
+		$FinalTable | ft -Autosize
+  		if($OutputFile){Write-Output "[*] Output saved to: $OutputFile"}
+		else{Write-Output "[*] Output saved to: $pwd\WebDAVStatusEnabled.txt"}
 		Write-Output ""
 		
 		if($Sessions){
-			Write-Output " Checking for Sessions..."
+			Write-Output "[*] Checking for Sessions..."
 			iex(new-object net.webclient).downloadstring('https://raw.githubusercontent.com/Leo4j/Invoke-SessionHunter/main/Invoke-SessionHunter.ps1')
 			$WebDAVStatusEnabled = ($WebDAVStatusEnabled -join ',')
 			$WebDAVSessions = Invoke-SessionHunter -Targets $WebDAVStatusEnabled -NoPortScan
-   			$WebDAVSessions
+   			$WebDAVSessions | ft -Autosize
       			if($OutputFile){
 	 			$filenameWithoutExtension = [System.IO.Path]::GetFileNameWithoutExtension($OutputFile)
 				$fileExtension = [System.IO.Path]::GetExtension($OutputFile)
@@ -207,7 +243,7 @@ function CheckWebDAVStatus
 	
 	else{
 		Write-Output ""
-		Write-Output " No hosts found where the WebClient Service is active."
+		Write-Output "[-] No hosts found where the WebClient Service is active."
 		Write-Output ""
 	}
 	
@@ -237,15 +273,15 @@ function CheckWebDAVStatus
 			$fullPath = Join-Path -Path $share -ChildPath $WebDavFileName
 			try {
 				Set-Content -Path $fullPath -Value $WebDavFile -Force
-				Write-Output " File saved to: $fullPath"
+				Write-Output "[*] File saved to: $fullPath"
 			} catch {
-				Write-Warning " Failed to save file to: $fullPath"
+				Write-Warning "[-] Failed to save file to: $fullPath"
 			}
 		}
 	}
 	
 	elseif($Enable -AND !$WritableShares){
-		Write-Output " Please provide a file containing a list of writable shares"
+		Write-Output "[-] Please provide a file containing a list of writable shares"
 		Write-Output ""
 		break
 	}
@@ -261,22 +297,89 @@ function CheckWebDAVStatus
 			if (Test-Path $fullPath) {
 				try {
 					Remove-Item -Path $fullPath -Force
-					Write-Output " File deleted from: $fullPath"
+					Write-Output "[+] File deleted from: $fullPath"
 				} catch {
-					Write-Warning " Failed to delete file from: $fullPath"
+					Write-Warning "[-] Failed to delete file from: $fullPath"
 				}
 			} else {
-				Write-Warning " File not found at: $fullPath"
+				Write-Warning "[-] File not found at: $fullPath"
 			}
 		}
 		
 	}
 	
 	elseif($Disable -AND !$WritableShares){
-		Write-Output " Please provide a file containing a list of writable shares"
+		Write-Output "[-] Please provide a file containing a list of writable shares"
 		Write-Output ""
 		break
 	}
 	
 	Write-Output ""
+}
+
+$source = @"
+using System;
+using System.Runtime.InteropServices;
+
+namespace DynamicTypes {
+    public class PipeChecker {
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool WaitNamedPipeA(string lpNamedPipeName, uint nTimeOut);
+    }
+}
+"@
+
+Add-Type -TypeDefinition $source -Language CSharp
+
+function CheckEFSPipe {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$TargetHost
+    )
+
+    $pipename = "\\$TargetHost\pipe\efsrpc"
+    $efsActive = [DynamicTypes.PipeChecker]::WaitNamedPipeA($pipename, 100)
+
+    if ($efsActive) {
+        return "True"
+    }
+	else {
+        Return "False"
+    }
+}
+
+function Get-OS {
+    param (
+        [string]$HostName,
+        [string]$Domain
+    )
+
+    $ErrorActionPreference = "SilentlyContinue"
+
+    # Construct the search base.
+    $baseDN = "DC=" + ($Domain -replace "\.", ",DC=")
+
+    $ldapFilter = "(&(objectCategory=computer)(name=$HostName))"
+    $attributesToLoad = "operatingSystem"
+
+    # Create the directory searcher
+    $searcher = New-Object System.DirectoryServices.DirectorySearcher
+    $searcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$baseDN")
+    $searcher.Filter = $ldapFilter
+    $searcher.PropertiesToLoad.Add($attributesToLoad) > $null
+
+    # Perform the search
+    $result = $searcher.FindOne()
+
+    # Check if results were returned and output the operatingSystem property.
+    if ($result -ne $null) {
+        $entry = $result.GetDirectoryEntry()
+        if ($entry.Properties["operatingSystem"].Value -ne $null) {
+            return $entry.Properties["operatingSystem"].Value.ToString()
+        } else {
+            return $null
+        }
+    } else {
+        return $null
+    }
 }
