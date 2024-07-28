@@ -11,13 +11,13 @@ function CheckWebDAVStatus{
 
 	#>
 	
-    [CmdletBinding()] Param(
+	[CmdletBinding()] Param(
 
- 	[Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
+	[Parameter (Mandatory=$False, Position = 0, ValueFromPipeline=$true)]
 	[String]
 	$Domain,
 
- 	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
+	[Parameter (Mandatory=$False, Position = 1, ValueFromPipeline=$true)]
 	[String]
 	$Targets,
 		
@@ -25,11 +25,11 @@ function CheckWebDAVStatus{
 	[String]
 	$TargetsFile,
 
- 	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
+	[Parameter (Mandatory=$False, Position = 3, ValueFromPipeline=$true)]
 	[String]
 	$OutputFile,
 
- 	[Parameter (Mandatory=$False, Position = 4, ValueFromPipeline=$true)]
+	[Parameter (Mandatory=$False, Position = 4, ValueFromPipeline=$true)]
 	[switch]
 	$Sessions,
 		
