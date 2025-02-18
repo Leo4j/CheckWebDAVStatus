@@ -74,8 +74,8 @@ function CheckWebDAVStatus{
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry("LDAP://$Domain")
    			$objSearcher.PageSize = 1000
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
-   			$objSearcher.PropertiesToLoad.Clear()
-			$objSearcher.PropertiesToLoad.Add("dNSHostName")
+   			$objSearcher.PropertiesToLoad.Clear() | Out-Null
+			$objSearcher.PropertiesToLoad.Add("dNSHostName") | Out-Null
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
 		}
 
@@ -85,8 +85,8 @@ function CheckWebDAVStatus{
 			$objSearcher.SearchRoot = New-Object System.DirectoryServices.DirectoryEntry
    			$objSearcher.PageSize = 1000
 			$objSearcher.Filter = "(&(sAMAccountType=805306369))"
-   			$objSearcher.PropertiesToLoad.Clear()
-			$objSearcher.PropertiesToLoad.Add("dNSHostName")
+   			$objSearcher.PropertiesToLoad.Clear() | Out-Null
+			$objSearcher.PropertiesToLoad.Add("dNSHostName") | Out-Null
 			$Computers = $objSearcher.FindAll() | %{$_.properties.dnshostname}
    			try{
 	  			$currentDomain = [System.DirectoryServices.ActiveDirectory.Domain]::GetCurrentDomain()
